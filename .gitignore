@@ -40,3 +40,8 @@ runs/
 
 # Configuration and Database
 *.db
+
+# Environment Variables
+.env
+.env.*
+!.env.example

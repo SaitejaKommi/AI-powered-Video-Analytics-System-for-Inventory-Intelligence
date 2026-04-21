@@ -4,6 +4,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils.logger import logger
 from src.utils.database import InventoryDatabase
+from src.alerts.notifier import AlertManager
+from datetime import datetime
 
 class AnomalyDetector:
     def __init__(self, target_class, missing_frame_tolerance=60, db_path="data/inventory.db"):
@@ -20,6 +22,7 @@ class AnomalyDetector:
         self.missing_frame_tolerance = missing_frame_tolerance
         
         self.db = InventoryDatabase(db_path=db_path)
+        self.notifier = AlertManager()
         
         # Memory states structured safely: { "id": {"last_zone": "Storage", "last_frame": 120} }
         self.object_history = {}
@@ -78,3 +81,8 @@ class AnomalyDetector:
         
         # Push cleanly to the connected DB architecture
         self.db.insert_alert(alert_type, obj_id, last_zone)
+        
+        # Fire active push notifications asynchronously
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        details = f"Target was explicitly last confirmed inside '{last_zone}' and vanished illegally."
+        self.notifier.notify(timestamp, alert_type, obj_id, details)
