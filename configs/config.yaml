@@ -26,3 +26,10 @@ tracking:
   max_age: 30         # Maximum number of missed frames before deleting track
   n_init: 3           # Consecutive detections needed to confirm track
   nn_budget: 100      # Maximum size of appearance gallery
+
+zones:
+  storage: [[50, 50], [300, 50], [300, 400], [50, 400]]
+  exit: [[350, 50], [600, 50], [600, 400], [350, 400]]
+
+counting:
+  target_class: "Person" # Change to "Cement Bag" later when in production

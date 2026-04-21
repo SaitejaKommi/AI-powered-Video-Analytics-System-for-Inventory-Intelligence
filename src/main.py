@@ -9,7 +9,8 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.detection.detector import YOLODetector
 from src.tracking.tracker import ObjectTracker
-from src.utils.video import VideoStream, draw_detections
+from src.counting.counter import ZoneCounter
+from src.utils.video import VideoStream, draw_detections, draw_zones_and_count
 from src.utils.logger import logger
 
 def load_config(config_path):
@@ -47,6 +48,10 @@ def main():
     track_n_init = config.get('tracking', {}).get('n_init', 3)
     track_nn_budget = config.get('tracking', {}).get('nn_budget', 100)
     
+    # Counting parameters
+    zones_config = config.get('zones', {})
+    counting_class = config.get('counting', {}).get('target_class', 'Person')
+    
     # Initialize components using configuration
     detector = YOLODetector(
         model_path=model_path,
@@ -59,6 +64,11 @@ def main():
         max_age=track_max_age,
         n_init=track_n_init,
         nn_budget=track_nn_budget
+    )
+    
+    counter = ZoneCounter(
+        zones_config=zones_config,
+        target_class=counting_class
     )
     
     logger.info(f"Opening video source: {video_source}")
@@ -85,13 +95,19 @@ def main():
         # 2. Run tracking
         tracked_detections = tracker.update(frame, detections)
         
+        # 3. Run zone logic
+        current_count = counter.update(tracked_detections)
+        
         # Log frame activity
         if frame_count % 30 == 0:
-            logger.info(f"Frame {frame_count} processed - Flow Detections: {len(detections)} -> Tracked: {len(tracked_detections)}")
+            logger.info(f"Frame {frame_count} | Detections: {len(detections)} | Trk: {len(tracked_detections)} | {counting_class}s Counted: {current_count}")
         
         if display_video:
-            # 3. Render visually using tracked outputs
+            # 4. Render visually using tracked outputs
             annotated_frame = draw_detections(frame, tracked_detections)
+            # Render zones and counter
+            annotated_frame = draw_zones_and_count(annotated_frame, zones_config, current_count, counting_class)
+            
             cv2.imshow("Inventory Surveillance", annotated_frame)
             
             # Application exit request
