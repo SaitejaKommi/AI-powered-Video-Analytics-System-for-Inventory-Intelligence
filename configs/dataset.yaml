@@ -1,0 +1,12 @@
+# Dataset configuration for YOLOv8 Training
+
+# Automatically resolves from the current working directory where train.py is launched
+path: data/dataset
+
+train: images/train  # train images (relative to 'path')
+val: images/val      # val images (relative to 'path')
+
+# Classes
+names:
+  0: Person
+  1: Cement Bag

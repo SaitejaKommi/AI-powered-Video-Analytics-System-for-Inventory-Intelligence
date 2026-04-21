@@ -28,3 +28,12 @@ data/samples/*.avi
 # OS files
 .DS_Store
 Thumbs.db
+
+# Dataset files
+data/dataset/images/train/*
+data/dataset/images/val/*
+data/dataset/labels/train/*
+data/dataset/labels/val/*
+
+# YOLO runs
+runs/
