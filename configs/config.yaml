@@ -21,3 +21,8 @@ training:
   img_size: 640
   project_dir: "models/yolov8"
   name: "cement_bag_model"
+
+tracking:
+  max_age: 30         # Maximum number of missed frames before deleting track
+  n_init: 3           # Consecutive detections needed to confirm track
+  nn_budget: 100      # Maximum size of appearance gallery

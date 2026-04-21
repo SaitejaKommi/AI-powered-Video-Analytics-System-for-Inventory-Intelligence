@@ -8,6 +8,7 @@ import yaml
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from src.detection.detector import YOLODetector
+from src.tracking.tracker import ObjectTracker
 from src.utils.video import VideoStream, draw_detections
 from src.utils.logger import logger
 
@@ -41,12 +42,23 @@ def main():
     video_source = config['video']['source']
     display_video = config['video']['display']
     
+    # Tracking parameters
+    track_max_age = config.get('tracking', {}).get('max_age', 30)
+    track_n_init = config.get('tracking', {}).get('n_init', 3)
+    track_nn_budget = config.get('tracking', {}).get('nn_budget', 100)
+    
     # Initialize components using configuration
     detector = YOLODetector(
         model_path=model_path,
         target_classes=allowed_classes,
         class_names=class_names,
         conf_threshold=conf_threshold
+    )
+    
+    tracker = ObjectTracker(
+        max_age=track_max_age,
+        n_init=track_n_init,
+        nn_budget=track_nn_budget
     )
     
     logger.info(f"Opening video source: {video_source}")
@@ -67,17 +79,19 @@ def main():
             
         frame_count += 1
         
-        # Run detection mapping cleanly to pure structured data
+        # 1. Run detection
         detections = detector.detect(frame)
+        
+        # 2. Run tracking
+        tracked_detections = tracker.update(frame, detections)
         
         # Log frame activity
         if frame_count % 30 == 0:
-            # Throttling the log slightly so it's readable, but logging detection count
-            logger.info(f"Frame {frame_count} processed - Detections: {len(detections)}")
+            logger.info(f"Frame {frame_count} processed - Flow Detections: {len(detections)} -> Tracked: {len(tracked_detections)}")
         
         if display_video:
-            # Render visually
-            annotated_frame = draw_detections(frame, detections)
+            # 3. Render visually using tracked outputs
+            annotated_frame = draw_detections(frame, tracked_detections)
             cv2.imshow("Inventory Surveillance", annotated_frame)
             
             # Application exit request
