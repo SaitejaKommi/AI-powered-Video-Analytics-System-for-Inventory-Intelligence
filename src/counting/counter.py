@@ -5,33 +5,43 @@ import numpy as np
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.utils.logger import logger
+from src.utils.database import InventoryDatabase
 
 class ZoneCounter:
-    def __init__(self, zones_config, target_class):
+    def __init__(self, zones_config, target_class, db_path="data/inventory.db"):
         """
         Stateful logic tracking objects across predefined polygon zones.
         
         Args:
-            zones_config (dict): Dictionary defining 'storage' and 'exit' coordinates.
-            target_class (str): Only increments count for this specific class label.
+            zones_config (dict): Dictionary defining 'storage' and 'exit' paths.
+            target_class (str): Only increments count for this specific target label.
+            db_path (str): Location of local inventory ledger.
         """
         logger.info(f"Initializing ZoneCounter for target: {target_class}")
+        
+        # System State Params
         self.target_class = target_class
         self.storage_zone = np.array(zones_config.get('storage', []), np.int32)
         self.exit_zone = np.array(zones_config.get('exit', []), np.int32)
         
+        # Active SQLite hook
+        self.db = InventoryDatabase(db_path=db_path)
+        
         # State tracker: object_id -> "Storage", "Exit", "Outside"
         self.object_states = {}
-        self.current_count = 0
+        
+        # Immediately retrieve valid crash-protected counter count 
+        self.current_count = self.db.get_current_count()
+        logger.info(f"Successfully loaded preserved historical count total: {self.current_count}")
 
     def _get_bottom_center(self, bbox):
-        """Extract the bottom center point of the bounding box mapping to object's feet."""
+        """Extract the exact bottom center (feet) to check overlap properly vs polygon mapping."""
         x1, y1, x2, y2 = bbox
         cx = int((x1 + x2) / 2)
         return (cx, int(y2))
 
     def _determine_zone(self, point):
-        """Return the zone name a 2D point resides inside."""
+        """Identify which exact polygon encompasses the vector center."""
         if cv2.pointPolygonTest(self.storage_zone, point, False) >= 0:
             return "Storage"
         if cv2.pointPolygonTest(self.exit_zone, point, False) >= 0:
@@ -40,11 +50,10 @@ class ZoneCounter:
 
     def update(self, tracked_detections):
         """
-        Process the latest detections to track movement patterns and evaluate increments/decrements.
-        Returns the identical structured list so pipeline flows unchanged, but internal states mutate.
+        Process the latest tracked inputs to mutate count history and generate DB events cleanly.
+        Returns just the current aggregate summation.
         """
         for det in tracked_detections:
-            # We strictly count targets configured by user
             if det["label"].lower() != self.target_class.lower() or det["id"] is None:
                 continue
                 
@@ -52,21 +61,25 @@ class ZoneCounter:
             point = self._get_bottom_center(det["bbox"])
             current_zone = self._determine_zone(point)
             
-            # Extract historical location
+            # Default state memory for untracked inputs is logically outside boundary areas
             previous_zone = self.object_states.get(obj_id, "Outside")
             
+            # Only trigger calculation flows upon physical boundary violations
             if previous_zone != current_zone:
-                # Rule 1: Enters Storage from anywhere else (typically Outside or Exit)
+                
+                # Boundary Check 1: Enter Storage (Meaning incoming stock logic)
                 if current_zone == "Storage":
                     self.current_count += 1
-                    logger.info(f"[{det['label']} ID:{obj_id}] Entered Storage -> Count: {self.current_count}")
+                    logger.info(f"[{det['label']} ID:{obj_id}] Entered Storage -> System Count: {self.current_count}")
+                    self.db.insert_event(obj_id, "IN", self.current_count)
                 
-                # Rule 2: Leaves Storage -> enters Exit
+                # Boundary Check 2: Pass specifically from Storage to Exit mapping (Outgoing stock logic)
                 elif previous_zone == "Storage" and current_zone == "Exit":
                     self.current_count -= 1
-                    logger.info(f"[{det['label']} ID:{obj_id}] Moved Storage to Exit -> Count: {self.current_count}")
+                    logger.info(f"[{det['label']} ID:{obj_id}] Emptied Storage to Exit -> System Count: {self.current_count}")
+                    self.db.insert_event(obj_id, "OUT", self.current_count)
                     
-            # Persist local state boundary memory
+            # Memory state assignment preventing duplications inherently tracking IDs indefinitely
             self.object_states[obj_id] = current_zone
 
         return self.current_count

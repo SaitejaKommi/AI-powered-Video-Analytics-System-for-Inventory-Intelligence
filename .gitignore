@@ -37,3 +37,6 @@ data/dataset/labels/val/*
 
 # YOLO runs
 runs/
+
+# Configuration and Database
+*.db

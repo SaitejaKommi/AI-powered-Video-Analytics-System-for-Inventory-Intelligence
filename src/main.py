@@ -51,6 +51,7 @@ def main():
     # Counting parameters
     zones_config = config.get('zones', {})
     counting_class = config.get('counting', {}).get('target_class', 'Person')
+    db_path = config.get('database', {}).get('path', 'data/inventory.db')
     
     # Initialize components using configuration
     detector = YOLODetector(
@@ -68,7 +69,8 @@ def main():
     
     counter = ZoneCounter(
         zones_config=zones_config,
-        target_class=counting_class
+        target_class=counting_class,
+        db_path=db_path
     )
     
     logger.info(f"Opening video source: {video_source}")

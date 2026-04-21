@@ -33,3 +33,6 @@ zones:
 
 counting:
   target_class: "Person" # Change to "Cement Bag" later when in production
+
+database:
+  path: "data/inventory.db"
