@@ -1,0 +1,15 @@
+# Configuration for AI-powered Smart Inventory Surveillance System
+
+model:
+  path: "models/yolov8/yolov8n.pt"  # Path to the YOLOv8 weights
+  confidence_threshold: 0.5         # Minimum confidence for detections
+
+classes:
+  allowed_classes: [0]              # Class IDs to process (e.g., 0 for person)
+  names:
+    0: "Person"
+    # Future example: 1: "Cement Bag"
+
+video:
+  source: 0                         # Can be 0 for webcam, or a path to a video file
+  display: true                     # Whether to display the video feed

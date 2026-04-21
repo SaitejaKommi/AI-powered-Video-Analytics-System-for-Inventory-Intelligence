@@ -1,0 +1,30 @@
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Models and data outputs
+models/yolov8/*.pt
+outputs/
+data/videos/*.mp4
+data/videos/*.avi
+data/samples/*.mp4
+data/samples/*.avi
+
+# OS files
+.DS_Store
+Thumbs.db
