@@ -36,3 +36,7 @@ counting:
 
 database:
   path: "data/inventory.db"
+
+alerts:
+  missing_frame_tolerance: 60  # Wait this many frames before triggering a missing object alert
+  sudden_drop_threshold: 2     # Count drop > 'X' rapidly (reserved for future use)

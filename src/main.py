@@ -10,6 +10,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from src.detection.detector import YOLODetector
 from src.tracking.tracker import ObjectTracker
 from src.counting.counter import ZoneCounter
+from src.alerts.anomaly import AnomalyDetector
 from src.utils.video import VideoStream, draw_detections, draw_zones_and_count
 from src.utils.logger import logger
 
@@ -53,6 +54,9 @@ def main():
     counting_class = config.get('counting', {}).get('target_class', 'Person')
     db_path = config.get('database', {}).get('path', 'data/inventory.db')
     
+    # Alert parameters
+    missing_tolerance = config.get('alerts', {}).get('missing_frame_tolerance', 60)
+    
     # Initialize components using configuration
     detector = YOLODetector(
         model_path=model_path,
@@ -71,6 +75,11 @@ def main():
         zones_config=zones_config,
         target_class=counting_class,
         db_path=db_path
+    )
+    
+    anomaly_engine = AnomalyDetector(
+        target_class=counting_class,
+        missing_frame_tolerance=missing_tolerance
     )
     
     logger.info(f"Opening video source: {video_source}")
@@ -100,12 +109,15 @@ def main():
         # 3. Run zone logic
         current_count = counter.update(tracked_detections)
         
+        # 4. Run Threat Simulation / Anomaly Logic
+        anomaly_engine.evaluate(frame_count, tracked_detections, counter.object_states)
+        
         # Log frame activity
         if frame_count % 30 == 0:
             logger.info(f"Frame {frame_count} | Detections: {len(detections)} | Trk: {len(tracked_detections)} | {counting_class}s Counted: {current_count}")
         
         if display_video:
-            # 4. Render visually using tracked outputs
+            # 5. Render visually using tracked outputs
             annotated_frame = draw_detections(frame, tracked_detections)
             # Render zones and counter
             annotated_frame = draw_zones_and_count(annotated_frame, zones_config, current_count, counting_class)
