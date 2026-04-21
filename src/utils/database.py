@@ -32,6 +32,15 @@ class InventoryDatabase:
                         count_after_event INTEGER
                     )
                 ''')
+                cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS security_alerts (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        alert_type TEXT,
+                        object_id INTEGER,
+                        last_zone TEXT
+                    )
+                ''')
                 conn.commit()
                 logger.info(f"Database schema initialized accurately at {self.db_path}")
         except Exception as e:
@@ -72,3 +81,28 @@ class InventoryDatabase:
         except Exception as e:
             logger.error(f"Failed to cleanly resurrect count from DB. Defaulting to 0: {e}")
             return 0
+
+    def insert_alert(self, alert_type, object_id, last_zone):
+        """Log suspicious anomalies persistently to the active SQLite disk."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    '''INSERT INTO security_alerts (timestamp, alert_type, object_id, last_zone) 
+                       VALUES (?, ?, ?, ?)''',
+                    (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), alert_type, object_id, last_zone)
+                )
+                conn.commit()
+        except Exception as e:
+            logger.error(f"DB Write Failure - Could not log Alert '{alert_type}': {e}")
+
+    def get_recent_alerts(self, limit=10):
+        """Fetch the most recent critical security alerts for frontend UI."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT timestamp, alert_type, object_id, last_zone FROM security_alerts ORDER BY id DESC LIMIT ?', (limit,))
+                return cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Failed to fetch security alerts: {e}")
+            return []
