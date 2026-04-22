@@ -13,8 +13,10 @@ class InventoryDatabase:
         """
         self.db_path = db_path
         
-        # Ensure parent directory physically exists
-        os.makedirs(os.path.dirname(self.db_path), exist_ok=True)
+        # Ensure parent directory physically exists if providing a file path
+        db_dir = os.path.dirname(self.db_path)
+        if db_dir:
+            os.makedirs(db_dir, exist_ok=True)
         self.init_db()
 
     def init_db(self):
@@ -105,4 +107,15 @@ class InventoryDatabase:
                 return cursor.fetchall()
         except Exception as e:
             logger.error(f"Failed to fetch security alerts: {e}")
+            return []
+
+    def get_recent_events(self, limit=10):
+        """Fetch the most recent inventory IN/OUT logs for frontend UI."""
+        try:
+            with sqlite3.connect(self.db_path) as conn:
+                cursor = conn.cursor()
+                cursor.execute('SELECT timestamp, event_type, object_id, count_after_event FROM inventory_events ORDER BY id DESC LIMIT ?', (limit,))
+                return cursor.fetchall()
+        except Exception as e:
+            logger.error(f"Failed to fetch inventory events: {e}")
             return []
