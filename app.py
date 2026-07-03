@@ -4,6 +4,7 @@ import yaml
 import sys
 import os
 import pandas as pd
+import time
 
 # Append path ensuring src imports cleanly
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -106,6 +107,8 @@ if st.session_state.stream_active:
         video_stream = VideoStream(source=video_source)
         frame_count = 0
         
+        last_ui_update_time = 0
+        
         while st.session_state.stream_active:
             ret, frame = video_stream.read()
             if not ret:
@@ -121,7 +124,9 @@ if st.session_state.stream_active:
             anomaly_engine.evaluate(frame_count, tracked_detections, counter.object_states)
             
             # --- UI Updates ---
-            if frame_count % 3 == 0:  # Mild throttle for render stability
+            current_time = time.time()
+            if current_time - last_ui_update_time > 0.25:  # Throttle rendering to max 4 FPS for thermal stability
+                last_ui_update_time = current_time
                 # Annotate natively
                 frame_annotated = draw_detections(frame, tracked_detections)
                 frame_annotated = draw_line_and_count(frame_annotated, line_config, current_count, counting_class)
