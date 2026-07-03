@@ -28,7 +28,37 @@ def load_config(config_path="configs/config.yaml"):
         logger.error(f"Failed to load config file: {e}")
         return {}
 
+def validate_config(cfg):
+    errors = []
+    # Model checks
+    model = cfg.get('model', {})
+    if not isinstance(model.get('path', ''), str): errors.append("model.path must be a string")
+    if not isinstance(model.get('confidence_threshold', 0.5), (int, float)): errors.append("model.confidence_threshold must be a number")
+    
+    # Tracking checks
+    tracking = cfg.get('tracking', {})
+    if not isinstance(tracking.get('track_buffer', 60), int): errors.append("tracking.track_buffer must be an integer")
+    if not isinstance(tracking.get('track_thresh', 0.3), (int, float)): errors.append("tracking.track_thresh must be a number")
+    if not isinstance(tracking.get('match_thresh', 0.8), (int, float)): errors.append("tracking.match_thresh must be a number")
+    
+    # Geometry checks
+    line = cfg.get('line_crossing', {}).get('vector', [])
+    if not isinstance(line, list) or len(line) != 4 or not all(isinstance(i, int) for i in line):
+        errors.append("line_crossing.vector must be a list of exactly 4 integers [x1, y1, x2, y2]")
+        
+    # Alerts checks
+    if not isinstance(cfg.get('alerts', {}).get('missing_frame_tolerance', 60), int):
+        errors.append("alerts.missing_frame_tolerance must be an integer")
+        
+    return errors
+
 config = load_config()
+config_errors = validate_config(config)
+if config_errors:
+    st.error("Configuration Validation Failed in config.yaml:")
+    for err in config_errors:
+        st.error(f"- {err}")
+    st.stop()
 
 # Extract parameters
 model_path = config.get('model', {}).get('path')
