@@ -50,16 +50,15 @@ smart-inventory-ai/
 
 ## How to Run
 
-To run the real-time detection pipeline, use the `main.py` script:
+To run the real-time detection pipeline, use the Streamlit dashboard:
 
-**Using WebCam:**
 ```bash
-python src/main.py --source 0
+streamlit run app.py
 ```
 
-**Using a Sample Video:**
+To run a headless diagnostic on a sample video without the UI:
 ```bash
-python src/main.py --source data/samples/test_video.mp4
+python scripts/validate_counting.py
 ```
 
 Press **`q`** to quit the video stream.
