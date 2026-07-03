@@ -22,11 +22,10 @@ smart-inventory-ai/
 │
 ├── src/
 │   ├── detection/    # YOLOv8 loading and inference logic
-│   ├── tracking/     # DeepSORT integration (coming soon)
-│   ├── counting/     # Zone entrance/exit logic (coming soon)
-│   ├── alerts/       # Anomaly alerts (coming soon)
-│   ├── utils/        # Video reading & drawing utils
-│   └── main.py       # Main entry point pipeline
+│   ├── tracking/     # ByteTrack integration for persistence
+│   ├── counting/     # Line-crossing counting logic
+│   ├── alerts/       # Anomaly and threat detection engine
+│   └── utils/        # Video reading, drawing, and async DB utils
 │
 ├── configs/          # Configuration files
 ├── outputs/          # Output videos and logs
