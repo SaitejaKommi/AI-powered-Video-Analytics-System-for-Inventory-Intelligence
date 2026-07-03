@@ -37,5 +37,5 @@ database:
   path: "data/inventory.db"
 
 alerts:
-  missing_frame_tolerance: 60  # Wait this many frames before triggering a missing object alert
+  missing_frame_tolerance: 9000  # Wait this many frames before triggering a missing object alert (Set to ~5 minutes at 30fps to avoid false alarms)
   sudden_drop_threshold: 2     # Count drop > 'X' rapidly (reserved for future use)
