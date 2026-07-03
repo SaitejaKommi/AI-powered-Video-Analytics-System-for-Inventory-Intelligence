@@ -1,20 +1,49 @@
 import cv2
 import numpy as np
 import supervision as sv
+import time
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from src.utils.logger import logger
 
 class VideoStream:
-    def __init__(self, source=0):
+    def __init__(self, source=0, max_reconnect_attempts=10):
         if isinstance(source, str) and source.isdigit():
             source = int(source)
             
         self.source = source
+        self.max_reconnect_attempts = max_reconnect_attempts
         self.cap = cv2.VideoCapture(source)
         
         if not self.cap.isOpened():
             raise ValueError(f"Unable to open video source: {source}")
 
     def read(self):
-        return self.cap.read()
+        ret, frame = self.cap.read()
+        if ret:
+            return ret, frame
+            
+        # Attempt reconnection if frame grab failed
+        logger.warning(f"Video stream dropped. Attempting to reconnect to {self.source}...")
+        attempts = 0
+        while attempts < self.max_reconnect_attempts:
+            self.cap.release()
+            time.sleep(2)  # Wait before trying again
+            self.cap = cv2.VideoCapture(self.source)
+            
+            if self.cap.isOpened():
+                ret, frame = self.cap.read()
+                if ret:
+                    logger.info("Video stream reconnected successfully.")
+                    return ret, frame
+                    
+            attempts += 1
+            logger.warning(f"Reconnect attempt {attempts}/{self.max_reconnect_attempts} failed.")
+            
+        logger.error(f"Failed to reconnect after {self.max_reconnect_attempts} attempts.")
+        return False, None
 
     def release(self):
         self.cap.release()
